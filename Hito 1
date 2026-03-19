@@ -1,102 +1,125 @@
 % =========================================================
-% HITO 1 COMPLETO: Interpolante de Lagrange Global
-% (Incluye Derivada N+1 de f2 simbólica)
+% HITO 1: Interpolante de Lagrange (NODOS EQUIESPACIADOS)
+% + 🚨 PREPARACIÓN MODO EXAMEN 🚨
 % =========================================================
 clear; clc; close all;
 
-% --- 1. PARÁMETROS ---
-N = 10; % Cambiar a 64 para ver la explosión total
-x_nodes = -1 + 2*(0:N)/N; % Nodos equiespaciados [cite: 110]
+% --- 1. PARÁMETROS DEL PROBLEMA ---
+N = 10; % ⬅️ CAMBIA N EN EL EXAMEN (Ej: 4 para 5 puntos)
+x_nodes = -1 + 2*(0:N)/N; 
 
-% --- 2. FUNCIONES EXACTAS ---
-f1 = @(x) sin(pi*x); % [cite: 112]
-f2 = @(x) 1./(1 + 25*x.^2); % [cite: 113]
+% 💡 NOTA EXAMEN: Si te dan una fórmula rara de nodos equiespaciados
+% como en el examen de 2019, coméntala arriba y escríbela aquí:
+% j = 0:N; x_nodes = ... ;
+
+% --- 2. FUNCIONES (EXACTAS Y DEL EXAMEN) ---
+% 💡 PARA EL EXAMEN: Comenta el sin(pi*x) y descomenta la tuya.
+
+% --- Funciones de Exámenes Anteriores ---
+% f1 = @(x) cos(2*acos(x)); % Examen 2019
+% f1 = @(x) (1 - x.^2).^5;  % Examen 2019
+% f1 = @(x) 1 + x + x.^2 + x.^3 + x.^4; % Examen 2018
+% p1 = rand(); p2 = rand(); f1 = @(x) p1*x.^4 + 2*p2*x.^2; % Examen 2024
+
+% --- Funciones Oficiales de la Práctica ---
+f1 = @(x) sin(pi*x); % <-- FUNCIÓN ACTIVA AHORA MISMO
+f2 = @(x) 1./(1 + 25*x.^2);
+
+% --- 3. MALLA DE ALTA PRECISIÓN (10.000 puntos para Examen) ---
+xx = linspace(-1, 1, 10000); 
+dx = xx(2) - xx(1);
 
 y1_nodes = f1(x_nodes);
 y2_nodes = f2(x_nodes);
-
-xx = linspace(-1, 1, 1000); % Malla fina
-dx = xx(2) - xx(1);
-
 y1_exact = f1(xx);
 y2_exact = f2(xx);
 
-% --- 3. INICIALIZACIÓN ---
+% --- 4. CÁLCULO DE LAGRANGE (NO TOCAR) ---
 P1 = zeros(size(xx));       
 P2 = zeros(size(xx));       
 pi_N = ones(size(xx));      
 lambda_N = zeros(size(xx)); 
 
-% --- 4. CÁLCULOS (Interpolación, Lebesgue y Nodal) ---
 for i = 1:length(xx)
     pi_N(i) = prod(xx(i) - x_nodes);
-    
-    for j = 1:(N+1)
-        L_j = 1; 
-        for k = 1:(N+1)
-            if k ~= j
-                L_j = L_j * (xx(i) - x_nodes(k)) / (x_nodes(j) - x_nodes(k));
+    for k = 1:(N+1)
+        L_k = 1; 
+        for m = 1:(N+1)
+            if m ~= k
+                L_k = L_k * (xx(i) - x_nodes(m)) / (x_nodes(k) - x_nodes(m));
             end
         end
-        P1(i) = P1(i) + y1_nodes(j) * L_j;
-        P2(i) = P2(i) + y2_nodes(j) * L_j;
-        lambda_N(i) = lambda_N(i) + abs(L_j);
+        P1(i) = P1(i) + y1_nodes(k) * L_k;
+        P2(i) = P2(i) + y2_nodes(k) * L_k;
+        lambda_N(i) = lambda_N(i) + abs(L_k);
     end
 end
 
-% --- 5. DERIVADAS ANALÍTICAS N+1 --- 
-% 5.1 Derivada analítica N+1 de f1(x)
+% --- 5. GRÁFICAS DE LA PRÁCTICA (SECCIONES NORMALES) ---
 deriv_N_f1 = (pi^(N+1)) * sin(pi*xx + (N+1)*pi/2);
-
-% 5.2 Derivada analítica N+1 de f2(x) usando cálculo simbólico
-syms xs;
-f2_sym = 1 / (1 + 25*xs^2);
-df2_sym = diff(f2_sym, xs, N+1); % Derivamos N+1 veces analíticamente
-df2_func = matlabFunction(df2_sym); % Convertimos a función evaluable
-deriv_N_f2 = df2_func(xx); % Evaluamos en nuestra malla
-
-% Derivadas numéricas del polinomio nodal [cite: 127]
 pi_N_prime = gradient(pi_N, dx);
 pi_N_double_prime = gradient(pi_N_prime, dx);
 
-% --- 6. REPRESENTACIÓN GRÁFICA ---
-figure('Name', sprintf('Hito 1 - Análisis completo (N = %d)', N), 'Position', [50, 50, 1200, 800]);
+figure('Name', 'Hito 1 - Práctica Normal', 'Position', [50, 50, 1200, 800]);
+subplot(2,3,1); plot(xx, y1_exact, 'b-', xx, P1, 'r--', x_nodes, y1_nodes, 'ko'); title('f_1(x)');
+subplot(2,3,2); plot(xx, y2_exact, 'b-', xx, P2, 'r--', x_nodes, y2_nodes, 'ko'); title('f_2(x) (Runge)');
+subplot(2,3,3); plot(xx, y1_exact - P1, 'b-', xx, y2_exact - P2, 'r-'); title('Error E_N(x)');
+subplot(2,3,4); semilogy(xx, abs(deriv_N_f1), 'b-'); title('Derivada N+1');
+subplot(2,3,5); yyaxis left; plot(xx, lambda_N, 'b-'); yyaxis right; plot(xx, pi_N, 'r-'); title('\lambda_N y \pi_{N+1}');
+subplot(2,3,6); plot(xx, pi_N_prime, 'r-', xx, pi_N_double_prime, 'b--'); title('Derivadas \pi');
 
-% 1. f1(x) y su interpolante [cite: 123]
-subplot(2,3,1);
-plot(xx, y1_exact, 'b-', 'LineWidth', 1.5); hold on;
-plot(xx, P1, 'r--', 'LineWidth', 1.5);
-plot(x_nodes, y1_nodes, 'ko', 'MarkerFaceColor', 'k');
-title('f_1(x) = sin(\pi x)'); legend('Exacta', 'P_N(x)', 'Nodos'); grid on;
 
-% 2. f2(x) y su interpolante [cite: 123]
-subplot(2,3,2);
-plot(xx, y2_exact, 'b-', 'LineWidth', 1.5); hold on;
-plot(xx, P2, 'r--', 'LineWidth', 1.5);
-plot(x_nodes, y2_nodes, 'ko', 'MarkerFaceColor', 'k');
-title('f_2(x) = 1/(1+25x^2) (Runge)'); grid on;
+% =========================================================
+% 🚨 6. MODO EXAMEN: RESULTADOS NUMÉRICOS PRECISOS 🚨
+% Quita el símbolo % de lo que te pregunten en el examen.
+% (Nota: Todos los cálculos se hacen sobre f1)
+% =========================================================
 
-% 3. Error de interpolación [cite: 124]
-subplot(2,3,3);
-plot(xx, y1_exact - P1, 'b-', 'LineWidth', 1.5); hold on;
-plot(xx, y2_exact - P2, 'r-', 'LineWidth', 1.5);
-title('Error E_N(x)'); legend('Error f_1', 'Error f_2'); grid on;
-
-% 4. COMPARATIVA Derivadas N+1 (ESCALA LOGARÍTMICA ABSOLUTA) 
-subplot(2,3,4);
-semilogy(xx, abs(deriv_N_f1), 'b-', 'LineWidth', 1.5); hold on;
-semilogy(xx, abs(deriv_N_f2), 'r-', 'LineWidth', 1.5);
-title('Valor Absoluto Derivadas N+1 (Log)'); 
-legend('|f_1^{(N+1)}|', '|f_2^{(N+1)}|', 'Location', 'best'); grid on;
-
-% 5. Polinomio Nodal y Función de Lebesgue [cite: 125]
-subplot(2,3,5);
-yyaxis left; plot(xx, lambda_N, 'b-', 'LineWidth', 1.5); ylabel('\lambda_N(x)');
-yyaxis right; plot(xx, pi_N, 'r-', 'LineWidth', 1.5); ylabel('\pi_{N+1}(x)');
-title('\lambda_N y \pi_{N+1}'); grid on;
-
-% 6. Derivadas del Polinomio Nodal [cite: 127]
-subplot(2,3,6);
-plot(xx, pi_N_prime, 'r-', 'LineWidth', 1.5); hold on;
-plot(xx, pi_N_double_prime, 'b--', 'LineWidth', 1.5);
-title('Derivadas \pi'' y \pi'''''); legend('\pi''', '\pi'''''); grid on;
+% disp('--- RESULTADOS EXAMEN ---');
+% 
+% x_eval = 0.33; % ⬅️ CAMBIA AQUÍ EL PUNTO QUE TE PIDAN EVALUAR
+% 
+% % PREGUNTA: Error de interpolación de f1 en el punto exacto
+% err_punto = abs(interp1(xx, y1_exact - P1, x_eval, 'spline'));
+% fprintf('1. Error de f1 en x = %.4f: %.5e\n', x_eval, err_punto);
+% 
+% % PREGUNTA: Valor MÁXIMO global de la Función de Lebesgue y su posición
+% [max_L, idx_L] = max(lambda_N);
+% fprintf('2. Max Lebesgue: %.5e (ocurre en x = %.4f)\n', max_L, xx(idx_L));
+% 
+% % PREGUNTA: Valor MÁXIMO global del polinomio nodal |pi_{N+1}(x)| y su posición
+% [max_pi, idx_pi] = max(abs(pi_N));
+% fprintf('3. Max |pi_{N+1}|: %.5e (ocurre en x = %.4f)\n', max_pi, xx(idx_pi));
+% 
+% % PREGUNTA: Error MÁXIMO global de interpolación
+% max_err = max(abs(y1_exact - P1));
+% fprintf('4. Error Máximo global: %.5e\n', max_err);
+% 
+% % PREGUNTA: Relación entre picos relativos de Lebesgue para x > 0 (Examen 2018)
+% lambda_pos = lambda_N(xx > 0);
+% picos_L = lambda_pos(islocalmax(lambda_pos)); % Busca los picos locales
+% if length(picos_L) >= 2
+%     fprintf('5. Relación picos Lebesgue (mayor/menor): %.5e\n', max(picos_L)/min(picos_L));
+% end
+% 
+% % PREGUNTA: Relación entre picos relativos de |pi_{N+1}(x)| para x > 0
+% pi_pos = abs(pi_N(xx > 0));
+% picos_pi = pi_pos(islocalmax(pi_pos));
+% if length(picos_pi) >= 2
+%     fprintf('6. Relación picos |pi_{N+1}| (mayor/menor): %.5e\n', max(picos_pi)/min(picos_pi));
+% end
+% 
+% % PREGUNTA: Derivada SEGUNDA del interpolante en el punto x_eval (Examen 2024)
+% P1_p = gradient(P1, dx);
+% P1_pp = gradient(P1_p, dx);
+% interp_pp = interp1(xx, P1_pp, x_eval, 'spline');
+% fprintf('7. Derivada segunda del interpolante en x = %.4f: %.5e\n', x_eval, interp_pp);
+% 
+% % PREGUNTA: Valor MÁXIMO de una derivada alta de la función exacta (Ej: Derivada 5)
+% M = 5; % ⬅️ CAMBIA EL ORDEN DE LA DERIVADA AQUÍ
+% syms xs;
+% f1_sym_expr = f1(xs); 
+% df1_sym = diff(f1_sym_expr, xs, M); % Deriva M veces analíticamente
+% df1_func = matlabFunction(df1_sym); % Lo convierte a función de MATLAB
+% max_deriv = max(abs(df1_func(xx)));
+% fprintf('8. Valor máximo de la derivada %d de f1: %.5e\n', M, max_deriv);
